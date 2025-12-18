@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Convocazioni Minibasket</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #50C878; color: white; margin: 0; padding: 20px 10px;
+}
+h1 { text-align: center; font-size: 1.5rem; margin: 15px 0; }
+.card { 
+    background: white; color: #333; padding: 15px; margin: 10px 0;
+    border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+h2 { margin: 0 0 10px 0; font-size: 1.2rem; }
+label { font-weight: 600; display: block; margin: 10px 0 5px 0; }
+select, input, textarea {
+    width: 100%; padding: 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 16px;
+}
+textarea { min-height: 80px; resize: vertical; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #f5f5f5; font-weight: 600; }
+.clickable { cursor: pointer; user-select: none; transition: background 0.15s; }
+.clickable:active { background: #f0f0f0; }
+.atleta-row.selected { background: #e8f5e9; font-weight: 600; border-left: 4px solid #25D366; }
+.incontro-row.selected { background: #fff3cd; font-weight: 600; border-left: 4px solid #ffc107; }
+.btn {
+    display: inline-block; padding: 12px 16px; border: none;
+    border-radius: 8px; font-weight: 600; text-align: center;
+    cursor: pointer; font-size: 15px; color: white; text-decoration: none;
+}
+.btn-primary { background: #007bff; }
+.btn-secondary { background: #6c757d; }
+.btn-whatsapp { background: #25D366; }
+.flex { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#feedback { color: #25D366; font-weight: 600; margin: 10px 0; opacity: 0; transition: opacity 0.3s; }
+.modal {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
+}
+.modal.active { display: flex; }
+.modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-height: 80vh; overflow-y: auto; }
+@media print {
+    .no-print { display: none; }
+    body { background: white; }
+    th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<h1>🏀 Convocazioni Minibasket</h1>
+
+<div class="card no-print">
+    <label>Filtra per Anno</label>
+    <select id="annoFiltro">
+        <option value="">Tutti</option>
+        <option value="2014">2014</option>
+        <option value="2015">2015</option>
+        <option value="2016">2016</option>
+        <option value="2017">2017</option>
+        <option value="2018">2018</option>
+        <option value="2019">2019</option>
+    </select>
+    <label>Cerca Atleta</label>
+    <input type="text" id="cercaAtleta" placeholder="Cerca per nome...">
+</div>
+
+<div class="card no-print">
+    <div class="flex">
+        <strong id="contatore">Selezionati: 0</strong>
+        <button class="btn btn-secondary" id="btnTutti">Tutti Visibili</button>
+    </div>
+    <table>
+        <thead><tr><th>Atleta</th><th>Anno</th></tr></thead>
+        <tbody id="atletiBody"></tbody>
+    </table>
+</div>
+
+<div class="card no-print">
+    <h2>Calendario Incontri</h2>
+    <table>
+        <thead><tr><th>Avversario</th><th>Data</th><th>Ora</th><th>Luogo</th></tr></thead>
+        <tbody id="incontriBody"></tbody>
+    </table>
+</div>
+
+<div class="card no-print">
+    <label>Messaggio Extra WhatsApp</label>
+    <textarea id="extraMsg" placeholder="Es: Portare documento..."></textarea>
+    <label>Note per la Stampa</label>
+    <textarea id="noteStampa" placeholder="Es: Ritrovo ore 15:00..."></textarea>
+</div>
+
+<div class="card no-print" style="background:#e8f5e9; border:2px solid #25D366">
+    <h2 style="color:#128C7E">📱 Anteprima Messaggio</h2>
+    <div id="anteprima" style="background:white; padding:15px; border-radius:8px; white-space:pre-wrap; color:#333">
+        <em style="color:#999">👆 Seleziona una partita</em>
+    </div>
+</div>
+
+<div class="card">
+    <div class="no-print flex" style="margin-bottom:15px">
+        <button class="btn btn-primary" id="btnConferma">Conferma Lista</button>
+        <button class="btn btn-secondary" id="btnStorico">Storico</button>
+    </div>
+    
+    <div id="feedback"></div>
+    
+    <div style="text-align:center; color:#333">
+        <p style="margin:5px 0">ASD VALL'IPPARI VITTORIA BASKET</p>
+        <h2 id="titoloGara">Lista Convocati</h2>
+    </div>
+    
+    <table>
+        <thead><tr><th>Nome</th><th>Anno</th><th>Tel</th><th class="no-print">WhatsApp</th></tr></thead>
+        <tbody id="convocatiBody"></tbody>
+    </table>
+    
+    <div style="margin-top:20px; padding:10px; border:1px solid #ddd; border-radius:8px; color:#333">
+        <strong>Note:</strong>
+        <div id="noteDiv"><em>Nessuna nota</em></div>
+    </div>
+    
+    <div class="no-print flex" style="margin-top:20px; flex-wrap:wrap">
+        <button class="btn btn-whatsapp" id="btnGruppo">Invia al Gruppo</button>
+        <button class="btn btn-primary" onclick="window.print()">Stampa PDF</button>
+        <button class="btn btn-secondary" onclick="location.reload()">Reset</button>
+    </div>
+</div>
+
+<div id="modalStorico" class="modal">
+    <div class="modal-content">
+        <h2>Storico Convocazioni</h2>
+        <div id="storicoContent"></div>
+        <button class="btn btn-primary" id="btnChiudi" style="width:100%; margin-top:15px">Chiudi</button>
+    </div>
+</div>
+
+<script>
+var atleti = [
+    {n:'Cirnigliaro Lorenzo', a:2019, t:'+391111111111'},
+    {n:'Lo Cicero Francesco', a:2019, t:'+391111111112'},
+    {n:'Bulcassimo Raffaele', a:2018, t:'+391111111113'},
+    {n:'Cilio Nicoló Savio', a:2018, t:'+391111111114'},
+    {n:'Di Martino Sergio', a:2018, t:'+391111111115'},
+    {n:'Menesino Sergio', a:2018, t:'+391111111116'},
+    {n:'Romano Edoardo', a:2018, t:'+391111111117'},
+    {n:'Cassarino Nicoló', a:2017, t:'+391111111118'},
+    {n:'Di Martino Matteo', a:2017, t:'+391111111119'},
+    {n:'Giudice Lorenzo', a:2017, t:'+391111111120'},
+    {n:'Guastella Tommaso', a:2017, t:'+391111111121'},
+    {n:'Mazza Giovanni', a:2017, t:'+391111111122'},
+    {n:'Paternò Sergio', a:2017, t:'+391111111123'},
+    {n:'Sesto Lorenzo', a:2017, t:'+391111111124'},
+    {n:'Stimolo Federico', a:2017, t:'+391111111125'},
+    {n:'Arestia Carmelo', a:2016, t:'+391111111126'},
+    {n:'Baeli Giulio', a:2016, t:'+391111111127'},
+    {n:'Bertolone Matteo', a:2016, t:'+391111111128'},
+    {n:'Brugoletta Nicoló Maria', a:2016, t:'+391111111129'},
+    {n:'Cilio Angelo', a:2016, t:'+391111111130'},
+    {n:"D'Agosta Gaetano", a:2016, t:'+391111111131'},
+    {n:'Incardona Luca', a:2016, t:'+391111111132'},
+    {n:'Battaglia Lorenzo', a:2015, t:'+391111111133'},
+    {n:'Campagnolo Francesco', a:2015, t:'+391111111134'},
+    {n:'Cassarino Vincenzo', a:2015, t:'+391111111135'},
+    {n:'La Rosa Matteo', a:2015, t:'+391111111136'},
+    {n:'Lorefice Thomas', a:2015, t:'+391111111137'},
+    {n:'Occhipinti Nathan Rosario', a:2015, t:'+391111111138'},
+    {n:'Ribaldo Gabriele Maria', a:2015, t:'+391111111139'},
+    {n:'Antoci Leonardo', a:2014, t:'+391111111140'},
+    {n:'Blanco Alessio', a:2014, t:'+391111111141'},
+    {n:'Gurrieri Raffael Emanuel', a:2014, t:'+391111111142'},
+    {n:'Longombardo Matteo', a:2014, t:'+391111111143'},
+    {n:'Puglisi Marco', a:2014, t:'+391111111144'},
+    {n:'Rotante Leonardo', a:2014, t:'+391111111145'},
+    {n:'Sbezzo Andrea', a:2014, t:'+391111111146'},
+    {n:'Scifo Andrea', a:2014, t:'+391111111147'},
+    {n:'Siciliano Mattia', a:2014, t:'+391111111148'}
+];
+
+var incontri = [
+    {av:'vs A.D.Pol. Vigor', d:'17/12/2025', o:'16:30', l:'SANTA CROCE'},
+    {av:'@ OLYMPIA COMISO', d:'10/01/2026', o:'11:30', l:'COMISO'},
+    {av:'vs VIRTUS RAGUSA', d:'19/01/2026', o:'16:30', l:'VITTORIA'},
+    {av:'@ ASD AD MAIORA', d:'26/01/2026', o:'18:00', l:'RAGUSA'},
+    {av:'@ OLIMPIA D. SAVIO', d:'07/02/2026', o:'10:00', l:'PALAMINARDI'},
+    {av:'@ AZZURRA POZZALLO', d:'10/02/2026', o:'18:00', l:'POZZALLO'},
+    {av:'vs PEGASO RAGUSA', d:'16/02/2026', o:'16:30', l:'VITTORIA'},
+    {av:'vs Vigor BASKET', d:'02/03/2026', o:'16:30', l:'VITTORIA'},
+    {av:'vs OLYMPIA COMISO', d:'09/03/2026', o:'16:30', l:'VITTORIA'},
+    {av:'@ VIRTUS RAGUSA', d:'21/03/2026', o:'10:30', l:'PALAPADUA'},
+    {av:'vs ASD AD MAIORA', d:'23/03/2026', o:'16:30', l:'VITTORIA'},
+    {av:'vs OLIMPIA D. SAVIO', d:'30/03/2026', o:'16:30', l:'VITTORIA'},
+    {av:'@ PEGASO RAGUSA', d:'18/04/2026', o:'16:30', l:'MODICA'},
+    {av:'vs AZZURRA POZZALLO', d:'27/04/2026', o:'16:30', l:'VITTORIA'}
+];
+
+var selezionati = [];
+var incontroSel = null;
+var storico = [];
+
+try { storico = JSON.parse(localStorage.getItem('storico') || '[]'); } catch(e) {}
+
+// Carica atleti
+var atletiOrd = atleti.map(function(at, i) { return {n: at.n, a: at.a, t: at.t, idx: i}; });
+atletiOrd.sort(function(x, y) { return x.n.localeCompare(y.n); });
+
+var tbody = document.getElementById('atletiBody');
+for (var i = 0; i < atletiOrd.length; i++) {
+    var at = atletiOrd[i];
+    var tr = document.createElement('tr');
+    tr.className = 'clickable atleta-row';
+    tr.setAttribute('data-anno', at.a);
+    tr.setAttribute('data-nome', at.n.toLowerCase());
+    tr.setAttribute('data-idx', at.idx);
+    tr.innerHTML = '<td>' + at.n + '</td><td>' + at.a + '</td>';
+    tr.onclick = (function(row) {
+        return function() {
+            row.classList.toggle('selected');
+            var idx = parseInt(row.getAttribute('data-idx'));
+            var pos = selezionati.indexOf(idx);
+            if (pos >= 0) {
+                selezionati.splice(pos, 1);
+            } else {
+                selezionati.push(idx);
+            }
+            document.getElementById('contatore').textContent = 'Selezionati: ' + selezionati.length;
+        };
+    })(tr);
+    tbody.appendChild(tr);
+}
+
+// Carica incontri
+var tbodyInc = document.getElementById('incontriBody');
+for (var j = 0; j < incontri.length; j++) {
+    var inc = incontri[j];
+    var tr2 = document.createElement('tr');
+    tr2.className = 'clickable incontro-row';
+    tr2.innerHTML = '<td>' + inc.av + '</td><td>' + inc.d + '</td><td>' + inc.o + '</td><td>' + inc.l + '</td>';
+    tr2.onclick = (function(idx) {
+        return function() {
+            var rows = document.querySelectorAll('.incontro-row');
+            for (var k = 0; k < rows.length; k++) rows[k].classList.remove('selected');
+            this.classList.add('selected');
+            incontroSel = idx;
+            aggiornaAnteprima();
+        };
+    })(j);
+    tbodyInc.appendChild(tr2);
+}
+
+// Filtri
+document.getElementById('annoFiltro').onchange = filtra;
+document.getElementById('cercaAtleta').oninput = filtra;
+
+function filtra() {
+    var anno = document.getElementById('annoFiltro').value;
+    var cerca = document.getElementById('cercaAtleta').value.toLowerCase();
+    var rows = document.querySelectorAll('.atleta-row');
+    for (var i = 0; i < rows.length; i++) {
+        var tr = rows[i];
+        var ok = (!anno || tr.getAttribute('data-anno') === anno) && 
+                 tr.getAttribute('data-nome').indexOf(cerca) >= 0;
+        tr.style.display = ok ? '' : 'none';
+    }
+}
+
+// Tutti visibili
+document.getElementById('btnTutti').onclick = function() {
+    var rows = document.querySelectorAll('.atleta-row');
+    var visibili = [];
+    var tuttiSel = true;
+    
+    for (var i = 0; i < rows.length; i++) {
+        if (rows[i].style.display !== 'none') {
+            visibili.push(rows[i]);
+            if (!rows[i].classList.contains('selected')) tuttiSel = false;
+        }
+    }
+    
+    for (var i = 0; i < visibili.length; i++) {
+        var tr = visibili[i];
+        var idx = parseInt(tr.getAttribute('data-idx'));
+        if (tuttiSel) {
+            tr.classList.remove('selected');
+            var pos = selezionati.indexOf(idx);
+            if (pos >= 0) selezionati.splice(pos, 1);
+        } else {
+            tr.classList.add('selected');
+            if (selezionati.indexOf(idx) === -1) selezionati.push(idx);
+        }
+    }
+    document.getElementById('contatore').textContent = 'Selezionati: ' + selezionati.length;
+};
+
+// Anteprima
+document.getElementById('extraMsg').oninput = aggiornaAnteprima;
+document.getElementById('noteStampa').oninput = function() {
+    var note = document.getElementById('noteStampa').value;
+    document.getElementById('noteDiv').innerHTML = note.replace(/\n/g, '<br>') || '<em>Nessuna nota</em>';
+};
+
+function aggiornaAnteprima() {
+    var div = document.getElementById('anteprima');
+    if (incontroSel === null) {
+        div.innerHTML = '<em style="color:#999">👆 Seleziona una partita</em>';
+        return;
+    }
+    var inc = incontri[incontroSel];
+    var extra = document.getElementById('extraMsg').value;
+    var msg = 'Ciao [Nome], sei convocato!\n🏀 ' + inc.av + '\n📅 ' + inc.d + ' ore ' + inc.o + '\n📍 ' + inc.l;
+    if (extra) msg += '\n\n' + extra;
+    div.textContent = msg;
+}
+
+// Conferma
+document.getElementById('btnConferma').onclick = function() {
+    if (incontroSel === null || selezionati.length === 0) {
+        alert('Seleziona partita e atleti!');
+        return;
+    }
+    
+    var inc = incontri[incontroSel];
+    var conv = document.getElementById('convocatiBody');
+    conv.innerHTML = '';
+    document.getElementById('titoloGara').textContent = inc.av + ' - ' + inc.d;
+    
+    var selOrd = selezionati.slice().sort(function(a, b) {
+        return atleti[a].n.localeCompare(atleti[b].n);
+    });
+    
+    var extra = document.getElementById('extraMsg').value;
+    
+    for (var i = 0; i < selOrd.length; i++) {
+        var idx = selOrd[i];
+        var at = atleti[idx];
+        var msg = 'Ciao ' + at.n + ', sei convocato!\n🏀 ' + inc.av + '\n📅 ' + inc.d + ' ore ' + inc.o + '\n📍 ' + inc.l;
+        if (extra) msg += '\n\n' + extra;
+        var telPulito = at.t.replace(/\D/g, '');
+        var waLink = 'https://wa.me/' + telPulito + '?text=' + encodeURIComponent(msg);
+        conv.innerHTML += '<tr><td>' + at.n + '</td><td>' + at.a + '</td><td>' + at.t + '</td>' +
+            '<td class="no-print"><a href="' + waLink + '" target="_blank" class="btn btn-whatsapp" style="padding:6px 12px; font-size:13px">Invia</a></td></tr>';
+    }
+    
+    storico.unshift(inc.d + ' - ' + inc.av + ' (' + selezionati.length + ' atleti)');
+    try { localStorage.setItem('storico', JSON.stringify(storico.slice(0, 20))); } catch(e) {}
+    
+    var fb = document.getElementById('feedback');
+    fb.textContent = '✓ Lista creata!';
+    fb.style.opacity = 1;
+    setTimeout(function() { fb.style.opacity = 0; }, 3000);
+};
+
+// Gruppo
+document.getElementById('btnGruppo').onclick = function() {
+    if (incontroSel === null) return;
+    var inc = incontri[incontroSel];
+    var nomi = [];
+    for (var i = 0; i < selezionati.length; i++) {
+        nomi.push(atleti[selezionati[i]].n);
+    }
+    nomi.sort();
+    var listaNomi = nomi.join('\n- ');
+    var extra = document.getElementById('extraMsg').value;
+    var msg = '*CONVOCAZIONI*\n🏀 ' + inc.av + '\n📅 ' + inc.d + ' ore ' + inc.o + '\n📍 ' + inc.l + '\n\n*ATLETI:*\n- ' + listaNomi;
+    if (extra) msg += '\n\n' + extra;
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+};
+
+// Storico
+document.getElementById('btnStorico').onclick = function() {
+    var html = '';
+    for (var i = 0; i < storico.length; i++) {
+        html += '<div style="padding:10px; border-bottom:1px solid #eee">' + storico[i] + '</div>';
+    }
+    document.getElementById('storicoContent').innerHTML = html || 'Nessun dato';
+    document.getElementById('modalStorico').classList.add('active');
+};
+
+document.getElementById('btnChiudi').onclick = function() {
+    document.getElementById('modalStorico').classList.remove('active');
+};
+</script>
+</body>
+</html>
