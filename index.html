@@ -99,7 +99,7 @@ th { background: #f5f5f5; font-weight: 600; }
 </div>
 
 <div class="card no-print" style="background:#e8f5e9; border:2px solid #25D366">
-    <h2 style="color:#128C7E">📱 Anteprima Messaggio</h2>
+    <h2 style="color:#128C7E">📱 Anteprima Messaggio Personale</h2>
     <div id="anteprima" style="background:white; padding:15px; border-radius:8px; white-space:pre-wrap; color:#333">
         <em style="color:#999">👆 Seleziona una partita</em>
     </div>
@@ -144,6 +144,7 @@ th { background: #f5f5f5; font-weight: 600; }
 </div>
 
 <script>
+// ELENCO ATLETI AGGIORNATO
 var atleti = [
     {n:'Cirnigliaro Lorenzo', a:2019, t:'+391111111111'},
     {n:'Lo Cicero Francesco', a:2019, t:'+391111111112'},
@@ -167,6 +168,7 @@ var atleti = [
     {n:'Cilio Angelo', a:2016, t:'+391111111130'},
     {n:"D'Agosta Gaetano", a:2016, t:'+391111111131'},
     {n:'Incardona Luca', a:2016, t:'+391111111132'},
+    {n:'Diano Francesco', a:2016, t:'+391111111132'}, // AGGIUNTO
     {n:'Battaglia Lorenzo', a:2015, t:'+391111111133'},
     {n:'Campagnolo Francesco', a:2015, t:'+391111111134'},
     {n:'Cassarino Vincenzo', a:2015, t:'+391111111135'},
@@ -182,7 +184,8 @@ var atleti = [
     {n:'Rotante Leonardo', a:2014, t:'+391111111145'},
     {n:'Sbezzo Andrea', a:2014, t:'+391111111146'},
     {n:'Scifo Andrea', a:2014, t:'+391111111147'},
-    {n:'Siciliano Mattia', a:2014, t:'+391111111148'}
+    {n:'Siciliano Mattia', a:2014, t:'+391111111148'},
+    {n:'Vasile Giovanni', a:2014, t:'+391111111149'} // AGGIUNTO
 ];
 
 var incontri = [
@@ -226,11 +229,7 @@ for (var i = 0; i < atletiOrd.length; i++) {
             row.classList.toggle('selected');
             var idx = parseInt(row.getAttribute('data-idx'));
             var pos = selezionati.indexOf(idx);
-            if (pos >= 0) {
-                selezionati.splice(pos, 1);
-            } else {
-                selezionati.push(idx);
-            }
+            if (pos >= 0) { selezionati.splice(pos, 1); } else { selezionati.push(idx); }
             document.getElementById('contatore').textContent = 'Selezionati: ' + selezionati.length;
         };
     })(tr);
@@ -277,14 +276,12 @@ document.getElementById('btnTutti').onclick = function() {
     var rows = document.querySelectorAll('.atleta-row');
     var visibili = [];
     var tuttiSel = true;
-    
     for (var i = 0; i < rows.length; i++) {
         if (rows[i].style.display !== 'none') {
             visibili.push(rows[i]);
             if (!rows[i].classList.contains('selected')) tuttiSel = false;
         }
     }
-    
     for (var i = 0; i < visibili.length; i++) {
         var tr = visibili[i];
         var idx = parseInt(tr.getAttribute('data-idx'));
@@ -300,7 +297,7 @@ document.getElementById('btnTutti').onclick = function() {
     document.getElementById('contatore').textContent = 'Selezionati: ' + selezionati.length;
 };
 
-// Anteprima
+// Anteprima (Usa "[Nome]" come segnaposto)
 document.getElementById('extraMsg').oninput = aggiornaAnteprima;
 document.getElementById('noteStampa').oninput = function() {
     var note = document.getElementById('noteStampa').value;
@@ -320,7 +317,7 @@ function aggiornaAnteprima() {
     div.textContent = msg;
 }
 
-// Conferma
+// Conferma Lista
 document.getElementById('btnConferma').onclick = function() {
     if (incontroSel === null || selezionati.length === 0) {
         alert('Seleziona partita e atleti!');
@@ -341,10 +338,13 @@ document.getElementById('btnConferma').onclick = function() {
     for (var i = 0; i < selOrd.length; i++) {
         var idx = selOrd[i];
         var at = atleti[idx];
-        var msg = 'Ciao ' + at.n + ', sei convocato!\n🏀 ' + inc.av + '\n📅 ' + inc.d + ' ore ' + inc.o + '\n📍 ' + inc.l;
+        // Personalizza il nome nel messaggio
+        var nomeBreve = at.n.split(' ')[1] || at.n.split(' ')[0];
+        var msg = 'Ciao ' + nomeBreve + ', sei convocato!\n🏀 ' + inc.av + '\n📅 ' + inc.d + ' ore ' + inc.o + '\n📍 ' + inc.l;
         if (extra) msg += '\n\n' + extra;
         var telPulito = at.t.replace(/\D/g, '');
         var waLink = 'https://wa.me/' + telPulito + '?text=' + encodeURIComponent(msg);
+        
         conv.innerHTML += '<tr><td>' + at.n + '</td><td>' + at.a + '</td><td>' + at.t + '</td>' +
             '<td class="no-print"><a href="' + waLink + '" target="_blank" class="btn btn-whatsapp" style="padding:6px 12px; font-size:13px">Invia</a></td></tr>';
     }
@@ -358,7 +358,7 @@ document.getElementById('btnConferma').onclick = function() {
     setTimeout(function() { fb.style.opacity = 0; }, 3000);
 };
 
-// Gruppo
+// Invia al Gruppo
 document.getElementById('btnGruppo').onclick = function() {
     if (incontroSel === null) return;
     var inc = incontri[incontroSel];
