@@ -62,12 +62,16 @@ th { background: #f5f5f5; font-weight: 600; }
     <div id="statoAtleti" style="background:#f1f3f4; padding:10px; border-radius:10px; margin-bottom:10px; font-size:0.85rem; color:#666; text-align:center">
         Nessuna lista caricata
     </div>
-    <button class="btn" style="background:#1565c0">
-        <label style="display:block; width:100%; cursor:pointer; color:white; font-weight:600; padding:0; margin:0">
-            📂 Carica Lista Atleti
-            <input type="file" id="caricaAtletiFile" style="display:none" accept=".json">
-        </label>
-    </button>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" style="background:#1565c0; flex:1; min-width:100px">
+            <label style="display:block; width:100%; cursor:pointer; color:white; font-weight:600; padding:0; margin:0">
+                📂 Carica
+                <input type="file" id="caricaAtletiFile" style="display:none" accept=".json">
+            </label>
+        </button>
+        <button class="btn" style="background:#2e7d32; flex:1; min-width:100px" id="btnScaricaAtleti">📥 Scarica</button>
+        <button class="btn" style="background:#d32f2f; flex:1; min-width:100px" id="btnRimuoviAtleti">🗑 Rimuovi</button>
+    </div>
 </div>
 
 <div class="card no-print" id="filtriCard" style="display:none">
@@ -101,12 +105,16 @@ th { background: #f5f5f5; font-weight: 600; }
     <div id="statoCalendario" style="background:#f1f3f4; padding:10px; border-radius:10px; margin-bottom:10px; font-size:0.85rem; color:#666; text-align:center">
         Nessun calendario caricato
     </div>
-    <button class="btn" style="background:#1565c0">
-        <label style="display:block; width:100%; cursor:pointer; color:white; font-weight:600; padding:0; margin:0">
-            📂 Carica Calendario
-            <input type="file" id="caricaCalendarioFile" style="display:none" accept=".json">
-        </label>
-    </button>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" style="background:#1565c0; flex:1; min-width:100px">
+            <label style="display:block; width:100%; cursor:pointer; color:white; font-weight:600; padding:0; margin:0">
+                📂 Carica
+                <input type="file" id="caricaCalendarioFile" style="display:none" accept=".json">
+            </label>
+        </button>
+        <button class="btn" style="background:#2e7d32; flex:1; min-width:100px" id="btnScaricaCalendario">📥 Scarica</button>
+        <button class="btn" style="background:#d32f2f; flex:1; min-width:100px" id="btnRimuoviCalendario">🗑 Rimuovi</button>
+    </div>
     <table style="margin-top:10px">
         <thead><tr><th>Avversario</th><th>Data</th><th>Ora</th><th>Luogo</th></tr></thead>
         <tbody id="incontriBody"></tbody>
@@ -465,6 +473,47 @@ document.getElementById('btnStorico').onclick = function() {
 
 document.getElementById('btnChiudi').onclick = function() {
     document.getElementById('modalStorico').classList.remove('active');
+};
+
+function scaricaJSON(data, filename) {
+    var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnScaricaAtleti').onclick = function() {
+    if (atleti.length === 0) { alert('Nessuna lista atleti da scaricare.'); return; }
+    scaricaJSON(atleti, 'atleti.json');
+};
+
+document.getElementById('btnRimuoviAtleti').onclick = function() {
+    if (atleti.length === 0) { alert('Nessuna lista atleti da rimuovere.'); return; }
+    if (!confirm('Rimuovere la lista atleti? I dati salvati rimarranno, ma dovrai ricaricare il file JSON.')) return;
+    localStorage.removeItem(ATLETA_KEY);
+    atleti = [];
+    selezionati = [];
+    aggiornaStatoAtleti();
+};
+
+document.getElementById('btnScaricaCalendario').onclick = function() {
+    if (incontri.length === 0) { alert('Nessun calendario da scaricare.'); return; }
+    scaricaJSON(incontri, 'incontri.json');
+};
+
+document.getElementById('btnRimuoviCalendario').onclick = function() {
+    if (incontri.length === 0) { alert('Nessun calendario da rimuovere.'); return; }
+    if (!confirm('Rimuovere il calendario? I dati salvati rimarranno, ma dovrai ricaricare il file JSON.')) return;
+    localStorage.removeItem(INCONTRI_KEY);
+    incontri = [];
+    incontroSel = null;
+    aggiornaStatoCalendario();
+    aggiornaAnteprima();
 };
 
 document.getElementById('caricaCalendarioFile').onchange = function(e) {
