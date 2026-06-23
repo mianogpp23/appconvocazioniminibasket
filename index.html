@@ -97,8 +97,17 @@ th { background: #f5f5f5; font-weight: 600; }
 </div>
 
 <div class="card no-print">
-    <h2>Calendario Incontri</h2>
-    <table>
+    <label>📅 CALENDARIO INCONTRI</label>
+    <div id="statoCalendario" style="background:#f1f3f4; padding:10px; border-radius:10px; margin-bottom:10px; font-size:0.85rem; color:#666; text-align:center">
+        Nessun calendario caricato
+    </div>
+    <button class="btn" style="background:#1565c0">
+        <label style="display:block; width:100%; cursor:pointer; color:white; font-weight:600; padding:0; margin:0">
+            📂 Carica Calendario
+            <input type="file" id="caricaCalendarioFile" style="display:none" accept=".json">
+        </label>
+    </button>
+    <table style="margin-top:10px">
         <thead><tr><th>Avversario</th><th>Data</th><th>Ora</th><th>Luogo</th></tr></thead>
         <tbody id="incontriBody"></tbody>
     </table>
@@ -248,46 +257,81 @@ document.getElementById('caricaAtletiFile').onchange = function(e) {
     }
 };
 
-var incontri = [
-    {av:'vs A.D.Pol. Vigor', d:'17/12/2025', o:'16:30', l:'SANTA CROCE'},
-    {av:'@ OLYMPIA COMISO', d:'10/01/2026', o:'11:30', l:'COMISO'},
-    {av:'vs VIRTUS RAGUSA', d:'19/01/2026', o:'16:30', l:'VITTORIA'},
-    {av:'@ ASD AD MAIORA', d:'26/01/2026', o:'18:00', l:'RAGUSA'},
-    {av:'@ OLIMPIA D. SAVIO', d:'07/02/2026', o:'10:00', l:'PALAMINARDI'},
-    {av:'@ AZZURRA POZZALLO', d:'10/02/2026', o:'18:00', l:'POZZALLO'},
-    {av:'vs PEGASO RAGUSA', d:'16/02/2026', o:'16:30', l:'VITTORIA'},
-    {av:'vs Vigor BASKET', d:'02/03/2026', o:'16:30', l:'VITTORIA'},
-    {av:'vs OLYMPIA COMISO', d:'09/03/2026', o:'16:30', l:'VITTORIA'},
-    {av:'@ VIRTUS RAGUSA', d:'21/03/2026', o:'10:30', l:'PALAPADUA'},
-    {av:'vs ASD AD MAIORA', d:'23/03/2026', o:'16:30', l:'VITTORIA'},
-    {av:'vs OLIMPIA D. SAVIO', d:'30/03/2026', o:'16:30', l:'VITTORIA'},
-    {av:'@ PEGASO RAGUSA', d:'18/04/2026', o:'16:30', l:'MODICA'},
-    {av:'vs AZZURRA POZZALLO', d:'27/04/2026', o:'16:30', l:'VITTORIA'}
-];
-
+var incontri = [];
 var selezionati = [];
 var incontroSel = null;
 var storico = [];
+var INCONTRI_KEY = 'convocazioni_incontri_v1';
 
 try { storico = JSON.parse(localStorage.getItem('storico') || '[]'); } catch(e) {}
 
-// Carica incontri
-var tbodyInc = document.getElementById('incontriBody');
-for (var j = 0; j < incontri.length; j++) {
-    var inc = incontri[j];
-    var tr2 = document.createElement('tr');
-    tr2.className = 'clickable incontro-row';
-    tr2.innerHTML = '<td>' + inc.av + '</td><td>' + inc.d + '</td><td>' + inc.o + '</td><td>' + inc.l + '</td>';
-    tr2.onclick = (function(idx) {
-        return function() {
-            var rows = document.querySelectorAll('.incontro-row');
-            for (var k = 0; k < rows.length; k++) rows[k].classList.remove('selected');
-            this.classList.add('selected');
-            incontroSel = idx;
-            aggiornaAnteprima();
-        };
-    })(j);
-    tbodyInc.appendChild(tr2);
+function caricaCalendarioSalvato() {
+    try {
+        var data = localStorage.getItem(INCONTRI_KEY);
+        if (data) {
+            incontri = JSON.parse(data);
+        }
+    } catch(e) { incontri = []; }
+    aggiornaStatoCalendario();
+}
+
+function aggiornaStatoCalendario() {
+    var el = document.getElementById('statoCalendario');
+    if (incontri.length > 0) {
+        el.innerHTML = '✅ <strong>' + incontri.length + '</strong> incontri caricati';
+        ricaricaCalendario();
+    } else {
+        el.innerHTML = '⚠️ Nessun calendario caricato. Carica un file JSON.';
+        document.getElementById('incontriBody').innerHTML = '';
+    }
+}
+
+function caricaCalendarioDaFile(file) {
+    var r = new FileReader();
+    r.onload = function(ev) {
+        try {
+            var data = JSON.parse(ev.target.result);
+            if (!Array.isArray(data) || data.length === 0) {
+                alert('Formato JSON non valido. Deve essere un array di incontri.');
+                return;
+            }
+            for (var i = 0; i < data.length; i++) {
+                if (!data[i].av || !data[i].d || !data[i].o || !data[i].l) {
+                    alert('Incontro #' + (i+1) + ' non valido. Ogni incontro deve avere "av", "d", "o", "l".');
+                    return;
+                }
+            }
+            incontri = data;
+            localStorage.setItem(INCONTRI_KEY, JSON.stringify(incontri));
+            aggiornaStatoCalendario();
+            alert('✅ Caricati ' + incontri.length + ' incontri!');
+        } catch(e) {
+            alert('Errore: file JSON non valido (' + e.message + ')');
+        }
+    };
+    r.readAsText(file);
+}
+
+function ricaricaCalendario() {
+    incontroSel = null;
+    var tbodyInc = document.getElementById('incontriBody');
+    tbodyInc.innerHTML = '';
+    for (var j = 0; j < incontri.length; j++) {
+        var inc = incontri[j];
+        var tr2 = document.createElement('tr');
+        tr2.className = 'clickable incontro-row';
+        tr2.innerHTML = '<td>' + inc.av + '</td><td>' + inc.d + '</td><td>' + inc.o + '</td><td>' + inc.l + '</td>';
+        tr2.onclick = (function(idx) {
+            return function() {
+                var rows = document.querySelectorAll('.incontro-row');
+                for (var k = 0; k < rows.length; k++) rows[k].classList.remove('selected');
+                this.classList.add('selected');
+                incontroSel = idx;
+                aggiornaAnteprima();
+            };
+        })(j);
+        tbodyInc.appendChild(tr2);
+    }
 }
 
 // Filtri
@@ -423,7 +467,15 @@ document.getElementById('btnChiudi').onclick = function() {
     document.getElementById('modalStorico').classList.remove('active');
 };
 
+document.getElementById('caricaCalendarioFile').onchange = function(e) {
+    if (e.target.files.length > 0) {
+        caricaCalendarioDaFile(e.target.files[0]);
+        e.target.value = '';
+    }
+};
+
 caricaAtletiSalvati();
+caricaCalendarioSalvato();
 </script>
 </body>
 </html>
